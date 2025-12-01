@@ -1,142 +1,65 @@
 import { Request, Response, NextFunction } from 'express';
 import pc from 'picocolors';
-import { Formatter as PcFormatter } from 'picocolors/types';
-import bark from '@/index';
-import { optionsManager, Color } from '@/options';
 
-const createTimestampFormat = (options: bark.Options) => {
-  const { timestampFormat = 'DD-MM-YY HH:mm:ss:ms'} = options;
-
-  return (d: Date) => {
-    const tokens: { [key: string]: string } = {
-      'YYYY': d.getFullYear().toString(),
-      'YY': d.getFullYear().toString().slice(-2),
-      'MM': (d.getMonth() + 1).toString().padStart(2, '0'),
-      'M': (d.getMonth() + 1).toString(),
-      'DD': d.getDate().toString().padStart(2, '0'),
-      'D': d.getDate().toString(),
-      'HH': d.getHours().toString().padStart(2, '0'),
-      'H': d.getHours().toString(),
-      'mm': d.getMinutes().toString().padStart(2, '0'),
-      'm': d.getMinutes().toString(),
-      'ss': d.getSeconds().toString().padStart(2, '0'),
-      's': d.getSeconds().toString(),
-      'ms': d.getMilliseconds().toString().padStart(3, '0'),
-      'SSS': d.getMilliseconds().toString().padStart(3, '0'),
-    };
-
-    return timestampFormat.replace(
-      /YYYY|YY|MM|M|DD|D|HH|H|mm|m|ss|s|ms|SSS/g,
-      (match) => tokens[match]
-    );
-  };
-};
-
-const createColorFormat = (color: Color | undefined) => {
-  const colors: { [key in Color]: PcFormatter } = {
-    'red': pc.red,
-    'blue': pc.blue,
-    'green': pc.green,
-    'cyan': pc.cyan,
-    'magenta': pc.magenta,
-    'yellow': pc.yellow,
-    'gray': pc.gray,
-    'white': pc.white,
-    'black': pc.black
-  };
-  
-  return color ? colors[color] : pc.white;
-}
-
-const getTimestamp = (): string => {
-  let timestamp = '';
-
-  if (optionsManager.get().showTimestamp) {
-    const now = new Date();
-    const formatted = timestampFormat(now);
-    timestamp = formatted;
-  }
-
-  return `[${timestamp}]`;
-};
-
-let timestampFormat: (d: Date) => string = createTimestampFormat({});
-
-optionsManager.subscribe((options) => {
-  timestampFormat = createTimestampFormat(options);
-});
+import type bark from '@/index';
+import { timestamp, color } from '@/components';
+import { options } from '@/options';
 
 export function debug(msg: string) {
-  const timestamp = getTimestamp();
-
-  const options = optionsManager.get();
-
-  const colorFormat = createColorFormat(options.colors?.debug);
+  const colorFormat = color.format(options.value.colors?.debug);
 
   console.log(colorFormat(
     `DEBUG: ` +
-    `${timestamp} ` +
+    `${timestamp.now()}` +
     msg
   ));
 }
 
 export function info(msg: string) {
-  const timestamp = getTimestamp();
-
-  const options = optionsManager.get();
-
-  const colorFormat = createColorFormat(options.colors?.info);
+  const colorFormat = color.format(options.value.colors?.info);
 
   console.log(colorFormat(
     `INFO: ` +
-    `${timestamp} ` +
+    `${timestamp.now()}` +
     msg
   ));
 }
 
 export function warn(msg: string) {
-  const timestamp = getTimestamp();
-
-  const options = optionsManager.get();
-
-  const colorFormat = createColorFormat(options.colors?.warn);
+  const colorFormat = color.format(options.value.colors?.warn);
 
   console.log(colorFormat(
     `WARN: ` +
-    `${timestamp} ` +
+    `${timestamp.now()}` +
     msg
   ));
 }
 
 export function error(msg: string) {
-  const timestamp = getTimestamp();
-
-  const options = optionsManager.get();
-
-  const colorFormat = createColorFormat(options.colors?.error);
+  const colorFormat = color.format(options.value.colors?.error);
 
   console.log(colorFormat(
     `ERROR: ` +
-    `${timestamp} ` +
+    `${timestamp.now()}` +
     msg
   ));
 }
 
-export default (options: bark.Options = {}) => {
-  optionsManager.updateOptions(options);
+export default (newOptions: bark.Options = {}) => {
+  options.value = { ...options.value, ...newOptions };
 
   const {
     prefix = 'LOG',
-  } = options;
+  } = options.value;
 
   return (req: Request, res: Response, next: NextFunction) => {
-    let startTimeString = getTimestamp();
+    let startTimeString = timestamp.now();
     let startTime = Date.now();
-    const colorFormat = createColorFormat(options.colors?.http);
+    const colorFormat = color.format(options.value.colors?.http);
 
     console.log(colorFormat(
       `${prefix}: ` +
-      `${startTimeString} ` +
+      `${startTimeString}` +
       `${req.method} ` +
       `${req.url}`
     ));
@@ -155,11 +78,11 @@ export default (options: bark.Options = {}) => {
         statusColor = pc.cyan;
       }
 
-      let endTimeString = getTimestamp();
+      let endTimeString = timestamp.now();
 
       console.log(colorFormat(
         `${prefix}: ` +
-        `${endTimeString} ` +
+        `${endTimeString}` +
         `${req.method} ` +
         `${req.url} ` +
         `${statusColor(status.toString())} ` +
