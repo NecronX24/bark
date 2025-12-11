@@ -1,12 +1,15 @@
 
 import sqlite3, { Database } from 'sqlite3';
+import path from 'path';
 
 export default class DBManager{
     private static instance:DBManager;
     private dbInstance:Database;
 
     private constructor(){
-        this.dbInstance = new sqlite3.Database('./database.db', (err) => {
+        const dbPath = path.resolve(__dirname, '../src/database/database.db');
+
+        this.dbInstance = new sqlite3.Database(dbPath, (err) => {
         if (err) {
             console.error('Error opening database:', err);
         } else {
